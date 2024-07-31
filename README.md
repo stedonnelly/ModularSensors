@@ -18,7 +18,3 @@ A package that provides a generic platform for building a home sensor with micro
 ## Hosts
 
 - Home Assistant
-
-# License
-
-
