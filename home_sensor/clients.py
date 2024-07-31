@@ -45,6 +45,9 @@ class MQTT:
         }
         return config_payload_template
 
+    def mqtt_payload(self, reading):
+        return {reading.measurement_type: reading.value}
+    
     def publish_config(
         self,
         device_class,
@@ -66,5 +69,24 @@ class MQTT:
             retain=True,
         )
 
+    def setup_single_reading(self, sensor):
+        self.publish_config(
+            sensor.device_class,
+            sensor.measurement_type,
+            sensor.unit,
+            sensor.model_number,
+        )
+
+    def initialise_sensor(self, sensor):
+        for data_type in sensor.sensor_data:
+            self.setup_single_reading(sensor.sensor_data[data_type])
+
     def publish(self, topic, payload):
         self.client.publish(topic, payload)
+        
+    def publish_reading(self, reading):
+        payload = self.mqtt_payload(reading)
+        self.publish(
+            f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state",
+            json.dumps(payload),
+        )

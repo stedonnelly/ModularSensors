@@ -6,21 +6,20 @@ from .data import NEOPIXEL_PIN, NEOPIXEL_COUNT, colors, LED_PIN
 
 
 class ESP32S2:
-    def __init__(self, name: str = 'ESP32S2', client):
+    def __init__(self, name: str = "ESP32S2"):
         self.name = name
         self.machine_id = self.set_machine_id()
-        self.id = f'{self.name}_{self.machine_id}'
+        self.id = f"{self.name}_{self.machine_id}"
         self.model_number = "CT001"
         self.Manufacturer = "CrogoIndustries TM"
-        
+
         self.p2 = Pin(LED_PIN, Pin.OUT, Pin.PULL_UP)
         self.onboard_led = neopixel.NeoPixel(Pin(NEOPIXEL_PIN), NEOPIXEL_COUNT)
-        self.set_client(client)
-        self._sensors = {}
+        self.sensors = {}
 
     def set_machine_id(self):
         s = machine.unique_id()
-        return ''.join([hex(b)[2:] for b in s]).upper()
+        return "".join([hex(b)[2:] for b in s]).upper()
 
     def set_wifi_parameters(self, wifi_parameters: dict):
         self.ssid = wifi_parameters["ssid"]
@@ -55,26 +54,23 @@ class ESP32S2:
 
     def register_client(self, client):
         self.client = client()
-        self.parent_id = self.id
-        self.client.setup()
+        self.client.parent_id = self.id
 
     def initialise(self):
         self.p2.value(1)
         self.connect_to_wifi()
-        self.set_machine_id(self.wlan)
+        #self.set_machine_id(self.wlan)
+        
+        self.client.register_host(self.host)
+        self.client.setup()
         self.client.connect()
-        for sensor in self._sensors:
-            sensor.setup()
-            # Look at the setup method in the BME280Sensor class in sensors.py
-            # Have to find a smart way of automatically intialising the sensor data
-            # In a way that allows for the sensor to be general.
-
-    def publish_data(self, topic, payload):
-        self.client.publish(topic, payload)
+        
+        for sensor in self.sensors:
+            self.client.initialise_sensor(sensor)
 
     def add_sensor(self, sensor):
         sensor.parent_id = self.id
-        self._sensors[sensor.name] = sensor
+        self.sensors[sensor.name] = sensor
 
     def read_sensor_data(self, name):
-        self._sensors[name].read_sensor_data()
+        self.sensors[name].read_sensor_data()
