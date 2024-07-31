@@ -4,15 +4,15 @@ import json
 
 
 class MQTT:
-    def __init__(self):
-        self.name = "MQTT Client"
+    def __init__(self, name: str = "MQTT Client"):
+        self.name = name
         self.parent_id = None
         self.host = None
 
     def set_parameters(self, mqtt_parameters: dict):
         self.mqtt_parameters = mqtt_parameters
 
-    def set_reciever(self, host):
+    def register_host(self, host):
         self.host = host
 
     def setup(self):
@@ -49,7 +49,7 @@ class MQTT:
 
     def mqtt_payload(self, reading):
         return {reading.measurement_type: reading.value}
-    
+
     def publish_config(
         self,
         device_class,
@@ -77,17 +77,21 @@ class MQTT:
             sensor.measurement_type,
             sensor.unit,
             sensor.model_number,
+            sensor.manufacturer,
         )
 
     def initialise_sensor(self, sensor):
         for data_type in sensor.sensor_data:
+            print(data_type)
             self.setup_single_reading(sensor.sensor_data[data_type])
 
     def publish(self, topic, payload):
         self.client.publish(topic, payload)
-        
-    def publish_reading(self, reading):
+
+    def publish_sensor_data(self, reading):
         payload = self.mqtt_payload(reading)
+        print(f'Publishing {reading.measurement_type} to topic {self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state')
+        print(payload)
         self.publish(
             f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state",
             json.dumps(payload),
@@ -95,7 +99,9 @@ class MQTT:
 
     async def monitor_mqtt(self):
         while True:
-            if not self.client.is_connected():  # Assuming is_connected() checks the MQTT connection
+            if (
+                not self.client.is_connected()
+            ):  # Assuming is_connected() checks the MQTT connection
                 print("MQTT disconnected, attempting to reconnect...")
                 try:
                     self.connect()
@@ -103,6 +109,3 @@ class MQTT:
                 except Exception as e:
                     print(f"Failed to reconnect to MQTT: {e}")
             await asyncio.sleep(10)  # Check every 10 seconds
-
-    def start_monitoring(self):
-        

@@ -13,11 +13,10 @@ def run_controller(controller, interval: int):
         interval (int): _description_
     """
     controller.initialise()
-
     while True:
-        for sensor in controller.sensors:
-            controller.read_sensor_data(sensor)
+        for sensor_name in controller.sensors:
+            sensor = controller.sensors[sensor_name]
+            controller.read_sensor_data(sensor_name)
             for data_type in sensor.sensor_data:
                 controller.client.publish_sensor_data(sensor.sensor_data[data_type])
         time.sleep(interval)
-

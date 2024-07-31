@@ -10,15 +10,12 @@ class BME280Sensor:
         self.sensor = BME280(i2c=i2c)
         self.name = "BME280"
         self.parent_id = None
+        self.manufacturer = "CrogoIndustries TM"
+        self.model_number = "CT001"
 
-        self.temperature = SensorReading(
-        "Temperature", self.parent_id, "C", "temperature"
-        )
-        self.humidity = SensorReading(
-            "Humidity", self.parent_id, "%", "humidity"
-        )
-        self.sensor_data = {"temperature": self.temperature,
-                            "humidity": self.humidity}
+        self.temperature = SensorReading("Temperature", self.parent_id, "C", "temperature", self.manufacturer, self.model_number)
+        self.humidity = SensorReading("Humidity", self.parent_id, "%", "humidity", self.manufacturer, self.model_number)
+        self.sensor_data = {"temperature": self.temperature, "humidity": self.humidity}
 
     def read_compensated_data(self):
         return self.sensor.read_compensated_data()
@@ -27,8 +24,9 @@ class BME280Sensor:
         t, p, h = self.read_compensated_data()
         temperature = t / 100
         humidity = h / 1024
-        self.temperature.value = temperature
-        self.humidity.value = humidity
-    
+        self.temperature.value = round(temperature,2)
+        self.humidity.value = round(humidity,2)
+        print(f"Temperature: {temperature} C, Humidity: {humidity} %")
+
     def read_sensor_data(self):
         self.get_sensor_data()

@@ -54,7 +54,7 @@ class ESP32S2:
         self.host = host
 
     def register_client(self, client):
-        self.client = client()
+        self.client = client
         self.client.parent_id = self.id
 
     async def monitor_wifi(self):
@@ -80,11 +80,12 @@ class ESP32S2:
 
         self.client.register_host(self.host)
         self.client.setup()
+        print(f"Connecting to {self.client.name}...")
         self.client.connect()
+        print(f"Connected to {self.client.name}!")
         self.set_led_color("green")
-
         for sensor in self.sensors:
-            self.client.initialise_sensor(sensor)
+            self.client.initialise_sensor(self.sensors[sensor])
 
     def add_sensor(self, sensor):
         sensor.parent_id = self.id
