@@ -20,3 +20,4 @@ def run_controller(controller, interval: int):
             for data_type in sensor.sensor_data:
                 controller.client.publish_sensor_data(sensor.sensor_data[data_type])
         time.sleep(interval)
+

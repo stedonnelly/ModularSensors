@@ -3,6 +3,7 @@ import neopixel
 import machine
 from machine import Pin
 from .data import NEOPIXEL_PIN, NEOPIXEL_COUNT, colors, LED_PIN
+import uasyncio as asyncio
 
 
 class ESP32S2:
@@ -56,15 +57,32 @@ class ESP32S2:
         self.client = client()
         self.client.parent_id = self.id
 
+    async def monitor_wifi(self):
+        while True:
+            if not self.wlan.isconnected():
+                print("WiFi disconnected, attempting to reconnect...")
+                self.set_led_color("red")
+                self.wlan.connect(self.ssid, self.password)
+                while not self.wlan.isconnected():
+                    await asyncio.sleep(1)  # Wait for connection
+                print("Reconnected to WiFi.")
+                self.set_led_color("purple")
+                # Optionally reconnect the client
+                if self.client:
+                    self.client.connect()
+                self.set_led_color("green")
+            await asyncio.sleep(10)  # Check every 10 seconds
+
     def initialise(self):
         self.p2.value(1)
         self.connect_to_wifi()
-        #self.set_machine_id(self.wlan)
-        
+        # self.set_machine_id(self.wlan)
+
         self.client.register_host(self.host)
         self.client.setup()
         self.client.connect()
-        
+        self.set_led_color("green")
+
         for sensor in self.sensors:
             self.client.initialise_sensor(sensor)
 

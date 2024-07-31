@@ -1,4 +1,5 @@
 from umqtt.simple import MQTTClient
+import uasyncio as asyncio
 import json
 
 
@@ -18,6 +19,7 @@ class MQTT:
         self.client = MQTTClient(**self.mqtt_parameters)
 
     def connect(self):
+        asyncio.create_task(self.monitor_mqtt())
         self.client.connect()
 
     def mqtt_config_template(
@@ -90,3 +92,17 @@ class MQTT:
             f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state",
             json.dumps(payload),
         )
+
+    async def monitor_mqtt(self):
+        while True:
+            if not self.client.is_connected():  # Assuming is_connected() checks the MQTT connection
+                print("MQTT disconnected, attempting to reconnect...")
+                try:
+                    self.connect()
+                    print("Reconnected to MQTT.")
+                except Exception as e:
+                    print(f"Failed to reconnect to MQTT: {e}")
+            await asyncio.sleep(10)  # Check every 10 seconds
+
+    def start_monitoring(self):
+        
