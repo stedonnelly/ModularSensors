@@ -1,3 +1,5 @@
+import uasyncio as asyncio
+
 from home_sensor.controllers import ESP32S2
 from home_sensor.sensors import BME280Sensor
 from home_sensor.clients import MQTT
@@ -5,11 +7,11 @@ from home_sensor.hosts import HomeAssistant
 from home_sensor.api import run_controller
 
 esp32s2 = ESP32S2()
-esp32s2.set_wifi_parameters({"ssid": "", "password": ""})
+esp32s2.set_wifi_parameters({"ssid": "MySSID-2io32p", "password": "Pa55w0rd"})
 
 mqtt_client = MQTT()
 home_assistant = HomeAssistant()
-home_assistant.host_address = ""
+home_assistant.host_address = "192.168.1.200"
 
 mqtt_parameters = {
     "client_id": esp32s2.id,
@@ -25,4 +27,4 @@ bme280_sensor = BME280Sensor()
 
 esp32s2.add_sensor(bme280_sensor)
 
-run_controller(esp32s2, 30)
+asyncio.run(run_controller(esp32s2, 30))

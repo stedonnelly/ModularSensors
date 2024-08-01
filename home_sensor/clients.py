@@ -1,4 +1,4 @@
-from umqtt.simple import MQTTClient
+from umqtt.robust import MQTTClient
 import uasyncio as asyncio
 import json
 
@@ -99,13 +99,4 @@ class MQTT:
 
     async def monitor_mqtt(self):
         while True:
-            if (
-                not self.client.is_connected()
-            ):  # Assuming is_connected() checks the MQTT connection
-                print("MQTT disconnected, attempting to reconnect...")
-                try:
-                    self.connect()
-                    print("Reconnected to MQTT.")
-                except Exception as e:
-                    print(f"Failed to reconnect to MQTT: {e}")
             await asyncio.sleep(10)  # Check every 10 seconds
