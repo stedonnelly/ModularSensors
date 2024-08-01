@@ -1,22 +1,13 @@
 # api.py
-# In the api.py file, we define the API endpoints for the
-# sensor data and configuration messages.
 
 import time
+import uasyncio as asyncio
 
-
-def run_controller(controller, interval: int):
-    """_summary_
-
-    Args:
-        controller (Controller type): _description_
-        interval (int): _description_
-    """
+async def run_controller(controller, interval: int):
     controller.initialise()
     while True:
-        for sensor_name in controller.sensors:
-            sensor = controller.sensors[sensor_name]
+        for sensor_name, sensor in controller.sensors.items():
             controller.read_sensor_data(sensor_name)
-            for data_type in sensor.sensor_data:
-                controller.client.publish_sensor_data(sensor.sensor_data[data_type])
-        time.sleep(interval)
+            for data_type, reading in sensor.sensor_data.items():
+                controller.client.publish_sensor_data(reading)
+        await asyncio.sleep(interval)

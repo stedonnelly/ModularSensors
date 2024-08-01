@@ -44,6 +44,8 @@ class ESP32S2:
         while not self.wlan.isconnected():
             pass
         print("Connected to WiFi.")
+        ip = self.wlan.ifconfig()[0]
+        print(f"Device IP Address: {ip}")
         self.set_led_color("purple")
 
     def set_led_color(self, color):
@@ -71,13 +73,16 @@ class ESP32S2:
                 if self.client:
                     self.client.connect()
                 self.set_led_color("green")
+                ip = self.wlan.ifconfig()[0]
+                print(f"Device IP Address: {ip}")
             await asyncio.sleep(10)  # Check every 10 seconds
 
     def initialise(self):
         self.p2.value(1)
+        print(f"Initialising {self.id}")
         self.connect_to_wifi()
         # self.set_machine_id(self.wlan)
-
+        
         self.client.register_host(self.host)
         self.client.setup()
         print(f"Connecting to {self.client.name}...")
