@@ -11,8 +11,8 @@ class ESP32S2:
         self.name = name
         self.machine_id = self.set_machine_id()
         self.id = f"{self.name}_{self.machine_id}"
-        self.model_number = "CT001"
-        self.Manufacturer = "CrogoIndustries TM"
+        self.model_number = "ESP32S""
+        self.Manufacturer = "Espressif Systems"
 
         self.p2 = Pin(LED_PIN, Pin.OUT, Pin.PULL_UP)
         self.onboard_led = neopixel.NeoPixel(Pin(NEOPIXEL_PIN), NEOPIXEL_COUNT)
