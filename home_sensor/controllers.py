@@ -11,7 +11,7 @@ class ESP32S2:
         self.name = name
         self.machine_id = self.set_machine_id()
         self.id = f"{self.name}_{self.machine_id}"
-        self.model_number = "ESP32S""
+        self.model_number = "ESP32S"
         self.Manufacturer = "Espressif Systems"
 
         self.p2 = Pin(LED_PIN, Pin.OUT, Pin.PULL_UP)
@@ -35,14 +35,14 @@ class ESP32S2:
         return wrapper
 
     @check_wifi_params
-    def connect_to_wifi(self):
+    async def connect_to_wifi(self):
         self.set_led_color("orange")
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.wlan.connect(self.ssid, self.password)
         print("Connecting to WiFi...")
         while not self.wlan.isconnected():
-            pass
+            await asyncio.sleep(1)  # Use await to yield control
         print("Connected to WiFi.")
         ip = self.wlan.ifconfig()[0]
         print(f"Device IP Address: {ip}")
@@ -66,35 +66,42 @@ class ESP32S2:
                 self.set_led_color("red")
                 self.wlan.connect(self.ssid, self.password)
                 while not self.wlan.isconnected():
-                    await asyncio.sleep(1)  # Wait for connection
+                    await asyncio.sleep(1)
                 print("Reconnected to WiFi.")
                 self.set_led_color("purple")
-                # Optionally reconnect the client
                 if self.client:
                     self.client.connect()
+                await asyncio.sleep(1)  # Ensure connection stability before resuming
                 self.set_led_color("green")
                 ip = self.wlan.ifconfig()[0]
                 print(f"Device IP Address: {ip}")
-            await asyncio.sleep(10)  # Check every 10 seconds
+            await asyncio.sleep(10)
 
-    def initialise(self):
+    async def initialise(self):
         self.p2.value(1)
         print(f"Initialising {self.id}")
-        self.connect_to_wifi()
-        # self.set_machine_id(self.wlan)
-        
+        await self.connect_to_wifi()
         self.client.register_host(self.host)
         self.client.setup()
         print(f"Connecting to {self.client.name}...")
-        self.client.connect()
+        await self.client.connect()
+        await asyncio.sleep(1)  # Wait to ensure MQTT connection is stable
         print(f"Connected to {self.client.name}!")
         self.set_led_color("green")
         for sensor in self.sensors:
-            self.client.initialise_sensor(self.sensors[sensor])
+            await self.client.initialise_sensor(self.sensors[sensor])  # Await the async method
+            self.client.sensors = self.sensors
+
+        # Start a separate task to process MQTT messages from the queue
+        asyncio.create_task(self.client.process_queue())
+
+        asyncio.create_task(self.monitor_wifi())
+        
 
     def add_sensor(self, sensor):
         sensor.parent_id = self.id
         self.sensors[sensor.name] = sensor
+        print(f"Added sensor: {sensor.name}")
 
     def read_sensor_data(self, name):
         self.sensors[name].read_sensor_data()

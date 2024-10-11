@@ -1,13 +1,16 @@
 from umqtt.robust import MQTTClient
 import uasyncio as asyncio
 import json
-
+from ucollections import deque
 
 class MQTT:
     def __init__(self, name: str = "MQTT Client"):
         self.name = name
         self.parent_id = None
         self.host = None
+        self.message_queue = deque((), 10)  # A simple queue with a max of 10 messages
+        self.connected = False  # Track the connection status
+        self.sensors = []
 
     def set_parameters(self, mqtt_parameters: dict):
         self.mqtt_parameters = mqtt_parameters
@@ -18,9 +21,18 @@ class MQTT:
     def setup(self):
         self.client = MQTTClient(**self.mqtt_parameters)
 
-    def connect(self):
-        asyncio.create_task(self.monitor_mqtt())
-        self.client.connect()
+    async def connect(self):
+        asyncio.create_task(self.monitor_mqtt())  # Start the monitor task
+        while not self.connected:
+            try:
+                self.client.connect()  # Connect to the MQTT broker
+                self.connected = True  # Set connected status to True if successful
+                print("Connected to MQTT broker.")
+            except Exception as e:
+                self.connected = False  # Set connected status to False if connection fails
+                print(f"Failed to connect to MQTT broker: {e}")
+            await asyncio.sleep(5)
+
 
     def mqtt_config_template(
         self,
@@ -80,15 +92,43 @@ class MQTT:
             sensor.manufacturer,
         )
 
-    def initialise_sensor(self, sensor):
+    async def initialise_sensor(self, sensor):
         for data_type in sensor.sensor_data:
-            print(data_type)
+            print('Setup: '+data_type)
             self.setup_single_reading(sensor.sensor_data[data_type])
 
-    def publish(self, topic, payload):
-        self.client.publish(topic, payload)
+    def enqueue_message(self, topic, payload):
+        self.message_queue.append((topic, payload))
 
-    def publish_sensor_data(self, reading):
+    async def process_queue(self):
+        while True:
+            if self.message_queue:
+                topic, payload = self.message_queue.popleft()
+                try:
+                    self.publish(topic, payload)
+                    print(f"Published message to topic: {topic}")
+                except Exception as e:
+                    print(f"Failed to publish message: {e}")
+                    # Optional: Add failed message back to the queue if desired
+            await asyncio.sleep(0.1)  # Small sleep to prevent busy-waiting
+
+    def publish(self, topic, payload):
+        try:
+            self.client.publish(topic, payload)
+        except Exception as e:
+            self.connected = False  # If publish fails, set connected to False
+            print(f"Failed to publish message: {e}")
+
+    async def publish_sensor_data(self, reading):
+        payload = self.mqtt_payload(reading)
+        topic = f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state"
+        print(f'Publishing {reading.measurement_type} to topic {topic}')
+        print(payload)
+
+        # Enqueue the message instead of direct publish
+        self.enqueue_message(topic, json.dumps(payload))
+
+    async def publish_sensor_data1(self, reading):
         payload = self.mqtt_payload(reading)
         print(f'Publishing {reading.measurement_type} to topic {self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state')
         print(payload)
@@ -98,5 +138,29 @@ class MQTT:
         )
 
     async def monitor_mqtt(self):
+        print("Starting MQTT monitor task")
         while True:
+            print("Checking MQTT Status")
+            try:
+                # Try pinging the broker to check if we're still connected
+                self.client.ping()
+                print("MQTT client is connected")
+            except Exception as e:
+                print(f"MQTT client disconnected, attempting to reconnect... Reason: {e}")
+                try:
+                    # Attempt to reconnect
+                    self.client.connect()
+                    print("Reconnected to MQTT broker successfully.")
+                    
+                    # Wait for stability
+                    await asyncio.sleep(1)
+                    
+                    # Reinitialize sensors after reconnecting
+                    for sensor in self.sensors:
+                        print(f"Reinitializing sensor: {sensor}")
+                        await self.initialise_sensor(self.sensors[sensor])
+                    print("Reinitialized sensors after reconnection.")
+                except Exception as e:
+                    print(f"Failed to reconnect MQTT client: {e}")
+
             await asyncio.sleep(10)  # Check every 10 seconds
