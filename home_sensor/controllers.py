@@ -93,7 +93,6 @@ class ESP32S2:
             self.client.sensors = self.sensors
 
         # Start a separate task to process MQTT messages from the queue
-        asyncio.create_task(self.client.process_queue())
 
         asyncio.create_task(self.monitor_wifi())
         

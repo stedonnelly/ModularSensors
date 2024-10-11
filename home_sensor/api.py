@@ -20,11 +20,12 @@ async def run_controller(controller, interval: int):
                 print(f"Attempting to read data from sensor: {sensor_name}")
                 controller.read_sensor_data(sensor_name)  # Add print statements
                 for data_type, reading in sensor.sensor_data.items():
-                    await controller.client.publish_sensor_data(reading)
+                    #controller.clients.setup_single_reading(sensor)
+                    controller.client.publish_sensor_data(reading)
             await asyncio.sleep(interval)
         except Exception as e:
             print(f"Error while running controller: {e}")
-            await asyncio.sleep(5)
+            await asyncio.sleep(interval)
             try:
                 await controller.initialise()
             except Exception as e:

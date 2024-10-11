@@ -1,14 +1,12 @@
 from umqtt.robust import MQTTClient
 import uasyncio as asyncio
 import json
-from ucollections import deque
 
 class MQTT:
     def __init__(self, name: str = "MQTT Client"):
         self.name = name
         self.parent_id = None
         self.host = None
-        self.message_queue = deque((), 10)  # A simple queue with a max of 10 messages
         self.connected = False  # Track the connection status
         self.sensors = []
 
@@ -97,21 +95,6 @@ class MQTT:
             print('Setup: '+data_type)
             self.setup_single_reading(sensor.sensor_data[data_type])
 
-    def enqueue_message(self, topic, payload):
-        self.message_queue.append((topic, payload))
-
-    async def process_queue(self):
-        while True:
-            if self.message_queue:
-                topic, payload = self.message_queue.popleft()
-                try:
-                    self.publish(topic, payload)
-                    print(f"Published message to topic: {topic}")
-                except Exception as e:
-                    print(f"Failed to publish message: {e}")
-                    # Optional: Add failed message back to the queue if desired
-            await asyncio.sleep(0.1)  # Small sleep to prevent busy-waiting
-
     def publish(self, topic, payload):
         try:
             self.client.publish(topic, payload)
@@ -119,14 +102,16 @@ class MQTT:
             self.connected = False  # If publish fails, set connected to False
             print(f"Failed to publish message: {e}")
 
-    async def publish_sensor_data(self, reading):
+    def publish_sensor_data(self, reading):
         payload = self.mqtt_payload(reading)
         topic = f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state"
         print(f'Publishing {reading.measurement_type} to topic {topic}')
         print(payload)
-
+        self.publish(
+            f"{self.host.mqtt_state_topic}/{reading.device_class}/{self.parent_id}/{reading.measurement_type}/state",
+            json.dumps(payload),
+        )
         # Enqueue the message instead of direct publish
-        self.enqueue_message(topic, json.dumps(payload))
 
     async def publish_sensor_data1(self, reading):
         payload = self.mqtt_payload(reading)
@@ -153,7 +138,7 @@ class MQTT:
                     print("Reconnected to MQTT broker successfully.")
                     
                     # Wait for stability
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(15)
                     
                     # Reinitialize sensors after reconnecting
                     for sensor in self.sensors:
