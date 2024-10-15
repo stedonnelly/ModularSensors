@@ -3,6 +3,13 @@
 import time
 import uasyncio as asyncio
 import ujson
+import urequests
+
+def download_file(url, dest):
+    response = urequests.get(url)
+    with open(dest, 'w') as f:
+        f.write(response.text)
+    response.close()
 
 def load_config(file_path):
     with open(file_path, 'r') as f:

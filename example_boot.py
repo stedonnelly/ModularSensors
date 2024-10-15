@@ -4,44 +4,43 @@
 #import webrepl
 #webrepl.start()
 
-# runfile.py
-# Test runfile
-
 import uasyncio as asyncio
-
 from home_sensor.controllers import ESP32S2
 from home_sensor.sensors import BME280Sensor
 from home_sensor.clients import MQTT
 from home_sensor.hosts import HomeAssistant
 from home_sensor.api import run_controller, load_config
+import file_server  # Import the new file server module
 
+# Load configuration
+config = load_config("config.json")
 
-config = load_config('config.json')
-
-
-esp32s2 = ESP32S2()
+# Initialize ESP32S2
+esp32s2 = ESP32S2(machine_id=config['esp32']['machine_id'], final_light=config['esp32']['final_light'])
 esp32s2.set_wifi_parameters(config['wifi'])
 
+# Initialize MQTT and Home Assistant
 mqtt_client = MQTT()
 home_assistant = HomeAssistant()
 home_assistant.host_address = config['home_assistant']['host_address']
 
 mqtt_parameters = {
-    "client_id": esp32s2.id, # Client ID for your MQTT server, can be anything you choose
-    "server": home_assistant.host_address, # Since we're using the home assistant data host with MQTT then we use the MQTT address supplied in host
+    "client_id": esp32s2.id,
+    "server": home_assistant.host_address,
     "keepalive": 60,
 }
-mqtt_client.set_parameters(mqtt_parameters) # Initialising the MQTT paramets
+mqtt_client.set_parameters(mqtt_parameters)
 
-esp32s2.register_client(mqtt_client) # Register the client with the controller
-esp32s2.register_host(home_assistant) # Register the data host with the controller
+esp32s2.register_client(mqtt_client)
+esp32s2.register_host(home_assistant)
 
-########### SENSORS ############
-
-bme280_sensor = BME280Sensor() # Create the sensor object
-
+# Initialize sensor
+bme280_sensor = BME280Sensor()
 esp32s2.add_sensor(bme280_sensor)
 
-########## Run Commands ###########
+# Start the file server in a separate asynchronous task
+asyncio.create_task(file_server.launch_file_server())
 
-asyncio.run(run_controller(esp32s2, interval = 30)) # Uses the api.run_controller to get things rolling setting the sensor interval to 30 s
+# Start the controller
+asyncio.run(run_controller(esp32s2, 30))
+

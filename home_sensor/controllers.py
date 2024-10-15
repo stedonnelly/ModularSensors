@@ -7,9 +7,12 @@ import uasyncio as asyncio
 
 
 class ESP32S2:
-    def __init__(self, name: str = "ESP32S2"):
+    def __init__(self, name: str = "ESP32S2", machine_id: str = None, final_light: str = "green"):
         self.name = name
-        self.machine_id = self.set_machine_id()
+        if machine_id is None:
+            self.machine_id = self.set_machine_id()
+        else:
+            self.machine_id = machine_id
         self.id = f"{self.name}_{self.machine_id}"
         self.model_number = "ESP32S"
         self.Manufacturer = "Espressif Systems"
@@ -17,6 +20,8 @@ class ESP32S2:
         self.p2 = Pin(LED_PIN, Pin.OUT, Pin.PULL_UP)
         self.onboard_led = neopixel.NeoPixel(Pin(NEOPIXEL_PIN), NEOPIXEL_COUNT)
         self.sensors = {}
+        
+        self.final_light = final_light
 
     def set_machine_id(self):
         s = machine.unique_id()
@@ -77,8 +82,7 @@ class ESP32S2:
                 if self.client:
                     self.client.connect()
                 await asyncio.sleep(1)  # Ensure connection stability before resuming
-                self.set_led_color("green")
-                self.set_led_color("off")
+                self.set_led_color(self.final_light)
                 ip = self.wlan.ifconfig()[0]
                 print(f"Device IP Address: {ip}")
             await asyncio.sleep(10)
@@ -93,7 +97,7 @@ class ESP32S2:
         await self.client.connect()
         await asyncio.sleep(1)  # Wait to ensure MQTT connection is stable
         print(f"Connected to {self.client.name}!")
-        self.set_led_color("green")
+        self.set_led_color(self.final_light)
         for sensor in self.sensors:
             await self.client.initialise_sensor(self.sensors[sensor])  # Await the async method
             self.client.sensors = self.sensors
