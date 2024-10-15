@@ -1,0 +1,10 @@
+{
+  "wifi": {
+    "ssid": "SSID-MyNetwork",
+    "password": "Pa55w0rd",
+    "hostname": "kitchen-esp",
+  },
+  "home_assistant": {
+    "host_address": "192.168.1.200"
+  }
+}

@@ -2,6 +2,11 @@
 
 import time
 import uasyncio as asyncio
+import ujson
+
+def load_config(file_path):
+    with open(file_path, 'r') as f:
+        return ujson.load(f)
 
 async def run_controller(controller, interval: int):
     INITIALISED = False

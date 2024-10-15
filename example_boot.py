@@ -13,15 +13,18 @@ from home_sensor.controllers import ESP32S2
 from home_sensor.sensors import BME280Sensor
 from home_sensor.clients import MQTT
 from home_sensor.hosts import HomeAssistant
-from home_sensor.api import run_controller
+from home_sensor.api import run_controller, load_config
+
+
+config = load_config('config.json')
 
 
 esp32s2 = ESP32S2()
-esp32s2.set_wifi_parameters({"ssid": "MyWifi-29sk20", "password": "Pa55w0rd"})
+esp32s2.set_wifi_parameters(config['wifi'])
 
 mqtt_client = MQTT()
 home_assistant = HomeAssistant()
-home_assistant.host_address = "192.168.1.200"
+home_assistant.host_address = config['home_assistant']['host_address']
 
 mqtt_parameters = {
     "client_id": esp32s2.id, # Client ID for your MQTT server, can be anything you choose

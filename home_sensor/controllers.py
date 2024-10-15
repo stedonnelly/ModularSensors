@@ -25,6 +25,7 @@ class ESP32S2:
     def set_wifi_parameters(self, wifi_parameters: dict):
         self.ssid = wifi_parameters["ssid"]
         self.password = wifi_parameters["password"]
+        self.hostname = wifi_parameters["hostname"]
 
     def check_wifi_params(func):
         def wrapper(self, *args, **kwargs):
@@ -40,6 +41,7 @@ class ESP32S2:
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.wlan.connect(self.ssid, self.password)
+        self.wlan.config(dhcp_hostname=self.hostname, pm=0)
         print("Connecting to WiFi...")
         while not self.wlan.isconnected():
             await asyncio.sleep(1)  # Use await to yield control
@@ -47,6 +49,7 @@ class ESP32S2:
         ip = self.wlan.ifconfig()[0]
         print(f"Device IP Address: {ip}")
         self.set_led_color("purple")
+    
 
     def set_led_color(self, color):
         self.onboard_led[0] = colors[color]
@@ -60,7 +63,9 @@ class ESP32S2:
         self.client.parent_id = self.id
 
     async def monitor_wifi(self):
+        print("MONITORING WIFI TASK GO")
         while True:
+            print("CHECKING WIFI")
             if not self.wlan.isconnected():
                 print("WiFi disconnected, attempting to reconnect...")
                 self.set_led_color("red")
@@ -73,6 +78,7 @@ class ESP32S2:
                     self.client.connect()
                 await asyncio.sleep(1)  # Ensure connection stability before resuming
                 self.set_led_color("green")
+                self.set_led_color("off")
                 ip = self.wlan.ifconfig()[0]
                 print(f"Device IP Address: {ip}")
             await asyncio.sleep(10)
@@ -104,3 +110,4 @@ class ESP32S2:
 
     def read_sensor_data(self, name):
         self.sensors[name].read_sensor_data()
+
