@@ -40,22 +40,39 @@ class MQTT:
         sensor_model,
         sensor_manufacturer,
     ):
-        config_payload_template = {
-            "device_class": f"{measurement_type}",
+        device_info = {
+            "identifiers": [f"{self.parent_id}"],
+            "name": f"{self.parent_id}",
+            "model": f"{sensor_model}",
+            "manufacturer": f"{sensor_manufacturer}",
+        }
+        
+        payload_template = {
+            "name": f"{measurement_type}",
             "state_topic": f"{self.host.mqtt_state_topic}/{device_class}/{self.parent_id}/{measurement_type}/state",
             "unit_of_measurement": unit_of_measurement,
+            "device_class": f"{measurement_type}",
             "value_template": f"{{{{ value_json.{measurement_type} }}}}",
-            "unique_id": f"{measurement_type}_{self.parent_id}",
-            "device": {
-                "identifiers": [f"{measurement_type}_{self.parent_id}"],
-                "name": f"{self.parent_id} {sensor_model} {measurement_type}",  # "ESP32S3 BME280 Temperature {}".format(machine_id),
-                "manufacturer": f"{sensor_manufacturer}",  # "CrogoIndustries TM",
-                "model": f"{sensor_model}",  # "Temperature sensor (crogotype002)",
-            },
-            "name": f"{measurement_type}{device_class}_{self.parent_id}",
-            "object_id": f"{measurement_type}{device_class}_{self.parent_id}",
+            "unique_id": f"{self.parent_id}_{measurement_type}",
+            "device": device_info,
         }
-        return config_payload_template
+        # config_payload_template = {
+        #     "device_class": f"{measurement_type}",
+        #     "state_topic": f"{self.host.mqtt_state_topic}/{device_class}/{self.parent_id}/{measurement_type}/state",
+        #     "unit_of_measurement": unit_of_measurement,
+        #     "value_template": f"{{{{ value_json.{measurement_type} }}}}",
+        #     "unique_id": f"{measurement_type}_{self.parent_id}",
+        #     "device": {
+        #         "identifiers": [f"{self.parent_id}"],
+        #         "name": f"{self.parent_id} {sensor_model}",  # "ESP32S3 BME280 Temperature {}".format(machine_id),
+        #         "manufacturer": f"{sensor_manufacturer}",  # "CrogoIndustries TM",
+        #         "model": f"{sensor_model}",  # "Temperature sensor (crogotype002)",
+        #     },
+        #     "name": f"{measurement_type} {self.parent_id}",
+        #     "object_id": f"{measurement_type} {self.parent_id}",
+        # }
+        print(f"Config payload: {payload_template}")
+        return payload_template
 
     def mqtt_payload(self, reading):
         return {reading.measurement_type: reading.value}
@@ -75,8 +92,9 @@ class MQTT:
             sensor_model,
             sensor_manufacturer,
         )
+        print(f"Publishing {measurement_type} config to topic {self.host.mqtt_state_topic}/{device_class}/{self.parent_id}_{measurement_type}/config")
         self.client.publish(
-            f"{self.host.mqtt_state_topic}/{device_class}/{self.parent_id}/{measurement_type}/config",
+            f"{self.host.mqtt_state_topic}/{device_class}/{self.parent_id}_{measurement_type}/config",
             json.dumps(mqtt_config_payload),
             retain=True,
         )
@@ -97,7 +115,7 @@ class MQTT:
 
     def publish(self, topic, payload):
         try:
-            self.client.publish(topic, payload)
+            self.client.publish(topic, payload, retain=True)
         except Exception as e:
             self.connected = False  # If publish fails, set connected to False
             print(f"Failed to publish message: {e}")

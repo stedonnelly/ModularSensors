@@ -10,12 +10,13 @@ class BME280Sensor:
         self.sensor = BME280(i2c=i2c)
         self.name = "BME280"
         self.parent_id = None
-        self.manufacturer = "CrogoIndustries TM"
-        self.model_number = "CT001"
+        self.manufacturer = "CrogTech"
+        self.model_number = "CT003"
 
-        self.temperature = SensorReading("Temperature", self.parent_id, "C", "temperature", self.manufacturer, self.model_number)
-        self.humidity = SensorReading("Humidity", self.parent_id, "%", "humidity", self.manufacturer, self.model_number)
-        self.sensor_data = {"temperature": self.temperature, "humidity": self.humidity}
+        self.temperature = SensorReading("Temperature", self.parent_id, "C", "Temperature", self.manufacturer, self.model_number)
+        self.humidity = SensorReading("Humidity", self.parent_id, "%", "Humidity", self.manufacturer, self.model_number)
+        self.pressure = SensorReading("Pressure", self.parent_id, "hPa", "Pressure", self.manufacturer, self.model_number)
+        self.sensor_data = {"Temperature": self.temperature, "Humidity": self.humidity, "Pressure": self.pressure}
 
         # Delay for sensor stability
         time.sleep(1)
@@ -35,9 +36,11 @@ class BME280Sensor:
 
         temperature = t / 100
         humidity = h / 1024
+        pressure = p / 256
         self.temperature.value = round(temperature, 2)
         self.humidity.value = round(humidity, 2)
-        print(f"Temperature: {temperature} C, Humidity: {humidity} %")
+        self.pressure.value = int(round(pressure/100, 0))
+        #print(f"Temperature: {temperature} C, Humidity: {humidity} %")
 
     def read_sensor_data(self):
         self.get_sensor_data()

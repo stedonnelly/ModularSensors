@@ -13,7 +13,7 @@ class ESP32S2:
             self.machine_id = self.set_machine_id()
         else:
             self.machine_id = machine_id
-        self.id = f"{self.name}_{self.machine_id}"
+        self.id = f"{self.machine_id}"
         self.model_number = "ESP32S"
         self.Manufacturer = "Espressif Systems"
 
@@ -46,7 +46,7 @@ class ESP32S2:
         self.wlan = network.WLAN(network.STA_IF)
         self.wlan.active(True)
         self.wlan.connect(self.ssid, self.password)
-        self.wlan.config(dhcp_hostname=self.hostname, pm=0)
+        self.wlan.config(dhcp_hostname=self.hostname, pm=network.WLAN.PM_NONE)
         print("Connecting to WiFi...")
         while not self.wlan.isconnected():
             await asyncio.sleep(1)  # Use await to yield control
